@@ -100,15 +100,13 @@ if (filter_has_var(INPUT_POST, "firstname") && filter_has_var(INPUT_POST, "lastn
                     <a href="index.php"><button class="btn btn-outline-dark my-2 my-sm-0">Atgal</button></a>
                 </div>
             </nav>
-            <h1 class="display-3 text-center my-5 slide-top">Registracija</h1>
+            <h1 class="display-3 text-center my-3 slide-top">Registracija</h1>
             <?php if (isset($errors) && count($errors) > 0) { ?>
-                <div class="container my-5">
-                    <ul class="list-group d-inline">
+                    <ul class="list-group w-25 mx-auto my-3">
                         <?php foreach ($errors AS $value) { ?>
-                            <li class="list-group-item list-group-item-danger d-inline"><?php echo $value; ?></li>
+                            <li class="list-group-item list-group-item-danger d-inline my-1"><?php echo $value; ?></li>
                         <?php } ?>
                     </ul>
-                </div>
             <?php } else if (isset($success) && $success == TRUE) { ?>
                 <div class="alert alert-success d-table mx-auto" role="alert">Registracija sėkminga
                     <div>Po 5 sekundžių būsite nukreipti į prisijungimą</div>

@@ -4,7 +4,7 @@ session_start();
 
 // Checking if user is already logged in
 if (isset($_SESSION['logged_in'])) {
-    header('location: login.php');
+    header('location: sarasas.php');
 
     // Checking if all login form data received
 } else if (filter_has_var(INPUT_POST, 'username') && filter_has_var(INPUT_POST, 'password')) {

@@ -80,7 +80,7 @@ if (isset($_SESSION["logged_in"])) {
     <html lang="lt">
         <head>
             <meta charset="UTF-8">
-            <title>Sausaininė</title>
+            <title>Sąrašas | Sausaininė</title>
             <link rel="shortcut icon" href="img/favicon.ico" />
             <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
             <link rel="stylesheet" href="CSS/style.css">
@@ -114,8 +114,9 @@ if (isset($_SESSION["logged_in"])) {
                 <?php } else if (isset($success)) { ?>
                     <div class="alert alert-success my-3" role="alert">Prekė sėkmingai pridėta!</div>
                 <?php } ?>
-                <div class="d-flex">
-                    <div class="col-md-6 col-sm-12">
+                <div class="container">
+                    <div class="row my-3">
+                    <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12 my-3">
                         <div>
                             <h3 class="text-center">Išsirinkite prekę</h3>
                         </div>
@@ -140,7 +141,7 @@ if (isset($_SESSION["logged_in"])) {
                             </div>
                         </form>
                     </div>
-                    <div class="col-md-6 col-sm-12">
+                    <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12 my-3">
                         <h3 class="text-center">Jūsų užsakymas</h3>
                         <?php if ($ordered) { ?>
                             <ul class="list-group">
@@ -167,6 +168,7 @@ if (isset($_SESSION["logged_in"])) {
                         <?php } ?>
                     </div>
                 </div>
+                    </div>
             </div>
         </body>
     </html>
