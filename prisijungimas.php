@@ -2,60 +2,60 @@
 // Starting session
 session_start();
 
-// Checking if user is already logged in
+// If user is already logged in, redirecting
 if (isset($_SESSION['logged_in'])) {
     header('location: sarasas.php');
 
-    // Checking if all login form data received
+    // If username & password POST data received, attempting to logged them in
 } else if (filter_has_var(INPUT_POST, 'username') && filter_has_var(INPUT_POST, 'password')) {
 
-    // Assigning received data to variables
+    // Filter sanitizing username & password into variables
     $username = filter_input(INPUT_POST, "username", FILTER_SANITIZE_STRING);
     $password = filter_input(INPUT_POST, "password", FILTER_SANITIZE_STRING);
 
-    // Including defined variables
-    include_once './inc/variables.php';
+    // Including configuration file
+    include_once './includes/config.php';
 
     // Preparing error array
     $errors = array();
 
-    // Checking if username is valid
+    // Checking if username is not empty, not too long, etc...
     if (empty($username)) {
         array_push($errors, "Vartotojo vardas negali būti tuščias!");
-    } else if (strlen($username) > $username_length) {
-        array_push($errors, "Vartotojo vardas negali būti ilgesnis negu " . $username_length . " simbolių!");
+    } else if (strlen($username) > $username_max_length) {
+        array_push($errors, "Vartotojo vardas negali būti ilgesnis negu " . $username_max_length . " simbolių!");
     }
 
-    // Checking if password is valid
+    // Checking if password is not empty, not too long, etc...
     if (empty($password)) {
         array_push($errors, "Slaptažodis negali būti tuščias!");
-    } else if (strlen($password) > $password_length) {
-        array_push($errors, "Slaptažodis negali būti ilgesnis negu " . $password_length . " simbolių!");
+    } else if (strlen($password) > $password_max_length) {
+        array_push($errors, "Slaptažodis negali būti ilgesnis negu " . $password_max_length . " simbolių!");
     }
 
-    // Checking how many errors after checking data
+    // If error count is 0, checking if user exists in database
     if (count($errors) == 0) {
 
         // Establishing connection to database
-        include_once './inc/connection.php';
+        include_once './includes/connection.php';
         $connection = new connection($database_hostname, $database_username, $database_password, $database_name);
 
+        // Grabbing one user with same username and password from database
+        $user = $connection->validateUser($username, md5($password));
 
-        if ($connection->loginUser($username, md5($password))) {
+        // Closing connection
+        $connection->close();
 
-            // Setting variable to display message
-            $success = TRUE;
+        // If grabbed user is not false, loggin in
+        if ($user != FALSE) {
 
             // Setting session variables
             $_SESSION["logged_in"] = TRUE;
-            $_SESSION["user_id"] = $connection->getUserId($username);
+            $_SESSION["user_id"] = $user["id"];
             $_SESSION["username"] = $username;
             $_SESSION["password"] = $password;
 
-            // Setting cookies
-            $_COOKIE["username"] = $username;
-
-            // Forwarding to another page
+            // Redirecting to another page
             header('location: sarasas.php');
         } else {
             array_push($errors, "Neteisingas vartotojo vardas arba slaptažodis!");
@@ -72,14 +72,14 @@ if (isset($_SESSION['logged_in'])) {
         <title>Prisijungimas | Sausaininė</title>
         <link rel="shortcut icon" href="img/favicon.ico" />
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <link rel="stylesheet" href="CSS/style.css">
+        <link rel="stylesheet" href="css/style.css">
     </head>
     <body>
         <div class="container h-100 d-flex flex-column text-center">
             <nav class="navbar navbar-light bg-light">
                 <a class="navbar-brand slide-left" href="#">
                     <img src="img/logo.png" width="30" height="30" class="d-inline-block align-top logo" alt="">
-                    UAB Sausaininė
+                    <small class="text-muted">UAB Sausaininė</small>
                 </a>
                 <div class="my-2 my-lg-0 slide-right">
                     <a href="index.php"><button class="btn btn-outline-dark my-2 my-sm-0">Atgal</button></a>
@@ -97,7 +97,7 @@ if (isset($_SESSION['logged_in'])) {
             <?php } ?>
             <div class="row text-center">
                 <div class="mx-auto slide-bottom">
-                    <form action="prisijungimas.php" method="post">
+                    <form method="post">
                         <div class="form-group">
                             <input type="text" class="form-control" id="username" name="username" placeholder="Vartotojo vardas" required>
                         </div>

@@ -2,74 +2,84 @@
 // Starting session
 session_start();
 
-// Checking if user is logged in
-if (isset($_SESSION["logged_in"])) {
+// If user is not logged in, redirecting to login page
+if (!isset($_SESSION["logged_in"])) {
 
-    // Including defined variables
-    include_once './inc/variables.php';
+    // Redirecting
+    header('location: prisijungimas.php');
+    exit();
+} else {
 
-    // Establishing connection to database
-    include_once './inc/connection.php';
-    $connection = new connection($database_hostname, $database_username, $database_password, $database_name);
-
-    // Checking if logout POST received
+    // If 'logout' POST received, destroying session and redirecting
     if (filter_has_var(INPUT_POST, "logout")) {
         session_destroy();
         header('location: prisijungimas.php');
     }
 
-    // Checking if add product POST received
-    if (filter_has_var(INPUT_POST, "product") && filter_has_var(INPUT_POST, "quantity")) {
-        $product_id = intval(filter_input(INPUT_POST, "product", FILTER_SANITIZE_STRING));
-        $quantity = intval(filter_input(INPUT_POST, "quantity", FILTER_SANITIZE_STRING));
+    // If user_id is not set, destroying session
+    if (!isset($_SESSION["user_id"])) {
+        session_destroy();
+        header('location: index.php');
+        exit();
+    }
 
-        // Preparing error array
-        $errors = array();
+    // Including configuration file
+    include_once './includes/config.php';
 
-        // Checking if product is valid
-        if (empty($product_id)) {
+    // Establishing connection to database
+    include_once './includes/connection.php';
+    $connection = new connection($database_hostname, $database_username, $database_password, $database_name);
+
+    // Preparing error array
+    $errors = array();
+
+    // If 'add_product' & 'add_quantity' POST received, attempting to add product to the order
+    if (filter_has_var(INPUT_POST, "add_product") && filter_has_var(INPUT_POST, "add_quantity")) {
+
+        // Filter sanitizing product & quantity into variables
+        $product = filter_input(INPUT_POST, "add_product", FILTER_SANITIZE_STRING);
+        $quantity = intval(filter_input(INPUT_POST, "add_quantity", FILTER_SANITIZE_STRING));
+
+        // Checking if received product name is not empty, exists in database, etc...
+        if (empty($product)) {
             array_push($errors, "Nepasirinktas produktas!");
-        } else if (!is_int($product_id)) {
-            array_push($errors, "Blogai pasirinktas produktas!");
-        } else if ($product_id < 1) {
-            array_push($errors, "Blogai pasirinktas produktas!");
-        } else if ($product_id > $connection->getMaxPorductId()) {
-            array_push($errors, "Blogai pasirinktas produktas!");
+        } else if ($connection->validateProduct($product) == FALSE) {
+            array_push($errors, "Tokio produkto nėra!");
         }
 
-        // Checking if quantity is valid
+        // Checking if quantity is not empty, not below 1, not greater than max, etc...
         if (empty($quantity)) {
             array_push($errors, "Kiekis negali būti tuščias!");
         } else if (!is_int($quantity)) {
             array_push($errors, "Kiekis turi būti skaičius!");
-        } else if ($quantity > $max_order_amount) {
-            array_push($errors, "Kiekis negali būti didesnis nei " . $max_order_amount . "!");
+        } else if ($quantity > $order_max_amount) {
+            array_push($errors, "Kiekis negali būti didesnis nei " . $order_max_amount . "!");
         } else if ($quantity < 1) {
             array_push($errors, "Kiekis negali būti mažiau už 1!");
         }
 
-        if (!isset($_SESSION["user_id"])) {
-            array_push($errors, "SESSION ERROR: user_id not set!");
-        }
-
-        // Checking how many errors after checking data
+        // If product & quantity passed the checks, attempting to add product to the order
         if (count($errors) == 0) {
 
             // Inserting order
-            $res = $connection->insertOrder($_SESSION["user_id"], $product_id, $quantity);
-
+            $res = $connection->insertOrder($_SESSION["user_id"], $product, $quantity);
+            
+            // If product is TRUE, querry was successful
             if ($res) {
                 $success = TRUE;
+            } else {
+                array_push($errors, "Produkto pridėjimo klaida!");
             }
         }
     }
 
-    // Getting item list
+    // Getting available products
     $products = $connection->getProducts();
 
-    // Getting order list
+    // Getting user order list
     $ordered = $connection->getOrders($_SESSION["user_id"]);
 
+    // if there is atleast one product in order, getting sum
     if ($ordered) {
         $order_sum = $connection->getOrderSum($_SESSION["user_id"]);
     }
@@ -83,15 +93,15 @@ if (isset($_SESSION["logged_in"])) {
             <title>Sąrašas | Sausaininė</title>
             <link rel="shortcut icon" href="img/favicon.ico" />
             <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-            <link rel="stylesheet" href="CSS/style.css">
+            <link rel="stylesheet" href="css/style.css">
         </head>
         <body>
-            <div class="container h-100 d-flex flex-column">
+            <div class="container h-100 d-flex flex-column border">
                 <nav class="navbar navbar-light bg-light">
                     <div>
                         <a class="navbar-brand slide-left" href="#">
                             <img src="img/logo.png" width="30" height="30" class="d-inline-block align-top logo" alt="">
-                            UAB Sausaininė
+                            <small class="text-muted">UAB Sausaininė</small>
                         </a>
                         <div>
                             <h5>Sveiki, <?php echo $_SESSION["username"]; ?></h5>
@@ -116,63 +126,60 @@ if (isset($_SESSION["logged_in"])) {
                 <?php } ?>
                 <div class="container">
                     <div class="row my-3">
-                    <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12 my-3">
-                        <div>
-                            <h3 class="text-center">Išsirinkite prekę</h3>
-                        </div>
-                        <form action="sarasas.php" method="post" class="w-100">
-                            <select name="product" size="10">
-                                <?php if (count($products) > 0) { ?>
-                                    <?php foreach ($products AS $key => $value) { ?>
-                                        <option value="<?php echo $key + 1; ?>"><?php echo $value["name"] . " - " . $value["price"] . " " . $currency_symbol; ?></option>
-                                    <?php } ?>
-                                <?php } ?>
-                            </select>
+                        <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12 my-3">
                             <div>
-                                <h3 class="text-center">Pasirinkite kiekį</h3>
+                                <h3 class="text-center">Išsirinkite prekę</h3>
                             </div>
-                            <select name="quantity">
-                                <?php for ($i = 1; $i <= $max_order_amount; $i++) { ?>
-                                    <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
-                                <?php } ?>
-                            </select>
-                            <div class="w-50 mx-auto">
-                                <button type="submit" class="btn btn-primary btn-lg btn-block my-3">Pateikti</button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12 my-3">
-                        <h3 class="text-center">Jūsų užsakymas</h3>
-                        <?php if ($ordered) { ?>
-                            <ul class="list-group">
-                                <?php foreach ($ordered AS $key => $value) { ?>
-                                    <li class="list-group-item my-1"><?php echo $value["name"] . " - " . $value["price"] . $currency_symbol . " - " . $value["quantity"] . " vnt."; ?></li>
-                                <?php } ?>
-                            </ul>
-                            <?php if (isset($order_sum)) { ?>
-                                <div class="text-right">
-                                    <p>Suma: <?php echo $order_sum . $currency_symbol; ?></p>
-                                    <?php if ($order_sum >= $discount_treshold) { ?>
-                                        <p>Nuolaida: <?php echo $discount_amount * 100 . "%"; ?></p>
-                                        <p>Galutinė suma: <?php echo round(($order_sum - ($order_sum * $discount_amount) . $currency_symbol), 2) . $currency_symbol; ?></p>
+                            <form method="post" class="w-100">
+                                <select name="add_product" size="10">
+                                    <?php if (count($products) > 0) { ?>
+                                        <?php foreach ($products AS $key => $value) { ?>
+                                            <option value="<?php echo $value["name"]; ?>"><?php echo $value["name"] . " - " . $value["price"] . " " . $currency_symbol; ?></option>
+                                        <?php } ?>
                                     <?php } ?>
+                                </select>
+                                <div>
+                                    <h3 class="text-center">Pasirinkite kiekį</h3>
                                 </div>
-                                <form action="#" method="post" class="w-50 mx-auto">
-                                    <button type="submit" class="btn btn-primary btn-lg btn-block my-3">Užbaigti</button>
-                                </form>
+                                <select name="add_quantity">
+                                    <?php for ($i = 1; $i <= $order_max_amount; $i++) { ?>
+                                        <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
+                                    <?php } ?>
+                                </select>
+                                <div class="w-50 mx-auto">
+                                    <button type="submit" class="btn btn-primary btn-lg btn-block my-3">Pateikti</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12 my-3">
+                            <h3 class="text-center">Jūsų užsakymas</h3>
+                            <?php if ($ordered) { ?>
+                                <ul class="list-group">
+                                    <?php foreach ($ordered AS $key => $value) { ?>
+                                        <li class="list-group-item my-1"><?php echo $value["name"] . " - " . $value["price"] . $currency_symbol . " - " . $value["quantity"] . " vnt."; ?></li>
+                                    <?php } ?>
+                                </ul>
+                                <?php if (isset($order_sum)) { ?>
+                                    <div class="text-right">
+                                        <p>Suma: <?php echo $order_sum . $currency_symbol; ?></p>
+                                        <?php if ($order_sum >= $discount_treshold) { ?>
+                                            <p>Nuolaida: <?php echo $discount_amount * 100 . "%"; ?></p>
+                                            <p>Galutinė suma: <?php echo round(($order_sum - ($order_sum * $discount_amount) . $currency_symbol), 2) . $currency_symbol; ?></p>
+                                        <?php } ?>
+                                    </div>
+                                    <form action="#" method="post" class="w-50 mx-auto">
+                                        <button type="submit" class="btn btn-primary btn-lg btn-block my-3">Užbaigti</button>
+                                    </form>
+                                <?php } ?>
+                            <?php } else { ?>
+                                <div>
+                                    <h3 class="text-center">Tuščias</h3>
+                                </div>
                             <?php } ?>
-                        <?php } else { ?>
-                            <div>
-                                <h3 class="text-center">Tuščias</h3>
-                            </div>
-                        <?php } ?>
+                        </div>
                     </div>
                 </div>
-                    </div>
             </div>
         </body>
     </html>
-    <?php
-} else {
-    header('location: prisijungimas.php');
-}
+<?php } ?>

@@ -5,13 +5,14 @@ $database_username = 'root';
 $database_password = '';
 $database_name = 'sausainine';
 
-$firstname_length = 20;
-$lastname_length = 20;
-$username_length = 20;
-$email_length = 20;
-$password_length = 50;
+$firstname_max_length = 20;
+$lastname_max_length = 20;
+$username_max_length = 20;
+$email_max_length = 20;
+$password_min_length = 3;
+$password_max_length = 50;
 
 $currency_symbol = "€";
-$max_order_amount = 10;
+$order_max_amount = 10;
 $discount_treshold = 10;
 $discount_amount = 0.05;

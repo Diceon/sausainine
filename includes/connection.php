@@ -15,6 +15,15 @@ class connection {
         }
     }
 
+    function close() {
+        $this->db->close();
+    }
+
+    function showError() {
+        printf("Database querry error: %s\n", mysqli_error($this->db));
+        exit();
+    }
+
     function isUnique($entry, $table, $field) {
         $query = "SELECT * FROM " . $table . " WHERE " . $field . " = '" . $entry . "' LIMIT 1";
         $res = mysqli_query($this->db, $query);
@@ -26,8 +35,7 @@ class connection {
                 return true;
             }
         } else {
-            printf("DB QUERRY ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
@@ -38,40 +46,37 @@ class connection {
         if ($res) {
             return true;
         } else {
-            printf("DB INSERT ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
-    function loginUser($username, $password) {
-        $query = "SELECT * FROM users WHERE username = '" . $username . "' AND password = '" . $password . "' LIMIT 1";
+    function validateUser($username, $password) {
+        $query = "SELECT id FROM users WHERE username = '" . $username . "' AND password = '" . $password . "' LIMIT 1";
         $res = mysqli_query($this->db, $query);
 
         if ($res) {
             if (mysqli_num_rows($res) > 0) {
-                return true;
+                return mysqli_fetch_array($res, MYSQLI_ASSOC);
             } else {
                 return false;
             }
         } else {
-            printf("DB QUERRY ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
-    function getUserId($username) {
-        $query = "SELECT id FROM users WHERE username = '" . $username . "' LIMIT 1";
+    function validateProduct($product_name) {
+        $query = "SELECT id FROM products WHERE name = '" . $product_name . "' LIMIT 1";
         $res = mysqli_query($this->db, $query);
 
         if ($res) {
-            if (mysqli_num_rows($res) != 0) {
-                return $res->fetch_object()->id;
+            if (mysqli_num_rows($res) > 0) {
+                return mysqli_fetch_array($res, MYSQLI_ASSOC);
             } else {
                 return false;
             }
         } else {
-            printf("DB SELECT ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
@@ -90,41 +95,23 @@ class connection {
                 return false;
             }
         } else {
-            printf("DB SELECT ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
-    function getMaxPorductId() {
-        $query = "SELECT MAX(id) AS id FROM products";
-        $res = mysqli_query($this->db, $query);
-
-        if ($res) {
-            if (mysqli_num_rows($res) != 0) {
-                return $res->fetch_object()->id;
-            } else {
-                return false;
-            }
-        } else {
-            printf("DB SELECT ERROR: %s\n", mysqli_error($this->db));
-            exit();
-        }
-    }
-
-    function insertOrder($user_id, $product_id, $quantity) {
-        $query = "INSERT INTO orders (user, product, quantity) VALUES ('" . $user_id . "', '" . $product_id . "', '" . $quantity . "')";
+    function insertOrder($user_id, $product_name, $quantity) {
+        $query = "INSERT INTO orders (user, product, quantity) VALUES ('" . $user_id . "', (SELECT id from products WHERE name = '" . $product_name . "' LIMIT 1), '" . $quantity . "')";
         $res = mysqli_query($this->db, $query);
 
         if ($res) {
             return true;
         } else {
-            printf("DB INSERT ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
     function getOrders($user_id) {
-        $query = "SELECT * FROM orders JOIN products ON products.id = orders.product WHERE orders.user = '" . $user_id . "'";
+        $query = "SELECT * FROM orders JOIN products ON products.id = orders.product WHERE orders.user = '" . $user_id . "' ORDER BY add_date";
         $res = mysqli_query($this->db, $query);
 
         if ($res) {
@@ -138,8 +125,7 @@ class connection {
                 return false;
             }
         } else {
-            printf("DB SELECT ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
@@ -150,11 +136,11 @@ class connection {
         if ($res) {
             return doubleval(mysqli_fetch_array($res, MYSQLI_ASSOC)["sum"]);
         } else {
-            printf("DB SELECT ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
+    // TODO
     function createDatabaseUser($username, $password, $hostname = "localhost") {
         $query = "CREATE USER '" . $username . "'@'" . $hostname . "' IDENTIFIED BY '" . $password . "'";
         $res = mysqli_query($this->db, $query);
@@ -162,8 +148,7 @@ class connection {
         if ($res) {
             return true;
         } else {
-            printf("DB CREATE USER ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
@@ -174,8 +159,7 @@ class connection {
         if ($res) {
             return true;
         } else {
-            printf("DB GRANT PRIVILEGES ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
@@ -186,8 +170,7 @@ class connection {
         if ($res) {
             return true;
         } else {
-            printf("DB FLUSH PRIVILEGES ERROR: %s\n", mysqli_error($this->db));
-            exit();
+            $this->showError();
         }
     }
 
