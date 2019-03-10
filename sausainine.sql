@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 02, 2019 at 08:44 PM
+-- Generation Time: Mar 10, 2019 at 07:20 PM
 -- Server version: 10.1.38-MariaDB
 -- PHP Version: 7.3.2
 
@@ -32,7 +32,8 @@ CREATE TABLE `orders` (
   `id` int(11) NOT NULL,
   `user` int(11) NOT NULL,
   `product` int(11) NOT NULL,
-  `quantity` int(11) NOT NULL DEFAULT '1'
+  `quantity` int(11) NOT NULL DEFAULT '1',
+  `add_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
@@ -70,15 +71,16 @@ CREATE TABLE `users` (
   `lastname` varchar(255) NOT NULL,
   `username` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL
+  `password` varchar(255) NOT NULL,
+  `register_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `firstname`, `lastname`, `username`, `email`, `password`) VALUES
-(1, 'test', 'test', 'test', 'test@test.com', '098f6bcd4621d373cade4e832627b4f6');
+INSERT INTO `users` (`id`, `firstname`, `lastname`, `username`, `email`, `password`, `register_date`) VALUES
+(1, 'test', 'test', 'test', 'test@test.com', '098f6bcd4621d373cade4e832627b4f6', '2019-03-10 18:07:04');
 
 --
 -- Indexes for dumped tables
