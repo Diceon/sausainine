@@ -37,13 +37,13 @@ if (!isset($_SESSION["logged_in"])) {
     if (filter_has_var(INPUT_POST, "add_product") && filter_has_var(INPUT_POST, "add_quantity")) {
 
         // Filter sanitizing product & quantity into variables
-        $product = filter_input(INPUT_POST, "add_product", FILTER_SANITIZE_STRING);
+        $product_name = filter_input(INPUT_POST, "add_product", FILTER_SANITIZE_STRING);
         $quantity = intval(filter_input(INPUT_POST, "add_quantity", FILTER_SANITIZE_STRING));
 
         // Checking if received product name is not empty, exists in database, etc...
-        if (empty($product)) {
+        if (empty($product_name)) {
             array_push($errors, "Nepasirinktas produktas!");
-        } else if ($connection->validateProduct($product) == FALSE) {
+        } else if ($connection->validateProduct($product_name) == FALSE) {
             array_push($errors, "Tokio produkto nėra!");
         }
 
@@ -62,14 +62,25 @@ if (!isset($_SESSION["logged_in"])) {
         if (count($errors) == 0) {
 
             // Inserting order
-            $res = $connection->insertOrder($_SESSION["user_id"], $product, $quantity);
-            
+            $res = $connection->insertOrder($_SESSION["user_id"], $product_name, $quantity);
+
             // If product is TRUE, querry was successful
             if ($res) {
-                $success = TRUE;
+                $success = "Prekė sėkmingai pridėta!";
             } else {
                 array_push($errors, "Produkto pridėjimo klaida!");
             }
+        }
+    } else if (filter_has_var(INPUT_POST, "remove_product") && filter_has_var(INPUT_POST, "quantity")) {
+
+        // Filter sanitizing product & quantity into variables
+        $product_name = filter_input(INPUT_POST, "remove_product", FILTER_SANITIZE_STRING);
+        $quantity = filter_input(INPUT_POST, "quantity", FILTER_SANITIZE_STRING);
+
+        if ($connection->validateProduct($product_name) != FALSE && !($quantity < 1)) {
+            $connection->remoteOrder($_SESSION["user_id"], $product_name, $quantity);
+
+            $success = "Prekė sėkmingai pašalinta!";
         }
     }
 
@@ -83,6 +94,9 @@ if (!isset($_SESSION["logged_in"])) {
     if ($ordered) {
         $order_sum = $connection->getOrderSum($_SESSION["user_id"]);
     }
+
+    // Closing connection
+    $connection->close();
 
     // Displaying page
     ?>
@@ -122,7 +136,7 @@ if (!isset($_SESSION["logged_in"])) {
                         </ul>
                     </div>
                 <?php } else if (isset($success)) { ?>
-                    <div class="alert alert-success my-3" role="alert">Prekė sėkmingai pridėta!</div>
+                    <div class="alert alert-success my-3" role="alert"><?php echo $success; ?></div>
                 <?php } ?>
                 <div class="container">
                     <div class="row my-3">
@@ -155,8 +169,13 @@ if (!isset($_SESSION["logged_in"])) {
                             <h3 class="text-center">Jūsų užsakymas</h3>
                             <?php if ($ordered) { ?>
                                 <ul class="list-group">
-                                    <?php foreach ($ordered AS $key => $value) { ?>
-                                        <li class="list-group-item my-1"><?php echo $value["name"] . " - " . $value["price"] . $currency_symbol . " - " . $value["quantity"] . " vnt."; ?></li>
+                                    <?php foreach ($ordered AS $product) { ?>
+                                        <form method="post" class="d-inline">
+                                            <li class="list-group-item"><?php echo $product["name"] . " - " . $product["price"] . $currency_symbol . " - " . $product["quantity"] . " vnt."; ?>
+                                                <input type="hidden" name="quantity" value="<?php echo $product["quantity"]; ?>">
+                                                <button type="submit" name="remove_product" value="<?php echo $product["name"]; ?>" class="close" aria-label="Close"><span aria-hidden="true" class="text-danger">&times;</span></button>
+                                            </li>
+                                        </form>
                                     <?php } ?>
                                 </ul>
                                 <?php if (isset($order_sum)) { ?>

@@ -110,6 +110,17 @@ class connection {
         }
     }
 
+    function remoteOrder($user_id, $product_name, $quantity) {
+        $query = "DELETE FROM orders WHERE user = '" . $user_id . "' AND product = (SELECT id from products WHERE name = '" . $product_name . "' LIMIT 1) AND quantity = '" . $quantity . "' LIMIT 1";
+        $res = mysqli_query($this->db, $query);
+
+        if ($res) {
+            return true;
+        } else {
+            $this->showError();
+        }
+    }
+
     function getOrders($user_id) {
         $query = "SELECT * FROM orders JOIN products ON products.id = orders.product WHERE orders.user = '" . $user_id . "' ORDER BY add_date";
         $res = mysqli_query($this->db, $query);
